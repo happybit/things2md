@@ -347,7 +347,7 @@ for row in task_results:
     taskProjectRaw = "No Project"
     if row.get('project') is not None:
         taskProjectRaw = projects[row['project']]
-        taskProject = f"{taskProjectRaw} // "
+        taskProject = f"{taskProjectRaw} || "
     # task date
     work_task_date = ""
     if row.get('stop_date') is not None:
@@ -446,37 +446,34 @@ if not ARG_SIMPLE:
 
 if DEBUG: print("\nWRITING TASKS ({}):".format(len(completed_work_tasks)))
 
+output = ""
+
 if completed_work_tasks:
-    # if not ARG_SIMPLE and ARG_RANGE != None:
-    #     print('# ☑️ Since {}'.format(ARG_RANGE.title()))
-    
     for key in completed_work_tasks:
-        # if DEBUG: print(completed_work_tasks[key])
         if key not in cancelled_work_tasks:
-            print(f"{completed_work_tasks[key]}")
+            output += f"\n{completed_work_tasks[key]}"
             if not ARG_SIMPLE:
                 if key in task_notes:
                     if ARG_FORMAT == "import":
-                        print(f"{task_notes[key]}")
+                        output += f"\n{task_notes[key]}"
                     else:
-                        print(f"{indent_string(task_notes[key])}")
+                        output += f"\n{indent_string(task_notes[key])}"
                 if key in task_subtasks:
-                    print(task_subtasks[key])
+                    output += f"\n{task_subtasks[key]}"
             if ARG_FORMAT == "import":
-                print("\n---")
-    if cancelled_work_tasks:
-        if not ARG_SIMPLE:
-            print("\n## 🅇 Cancelled\n")
-            for key in cancelled_work_tasks:
-                print(f"{cancelled_work_tasks[key]}")
-                if key in task_notes:
-                    print(f"{indent_string(task_notes[key])}")
-                if key in task_subtasks:
-                    print(task_subtasks[key])
+                output += "\n---"
 
-# format a list of projects as a list with inline attributes for Obsidian, grouped by area
+if cancelled_work_tasks:
+    if not ARG_SIMPLE:
+        output += "\n## 🅇 Cancelled\n"
+        for key in cancelled_work_tasks:
+            output += f"\n{cancelled_work_tasks[key]}"
+            if key in task_notes:
+                output += f"\n{indent_string(task_notes[key])}"
+            if key in task_subtasks:
+                output += f"\n{task_subtasks[key]}"
+
 if ARG_OPROJECTS:
-    # TODO: refactor repeated code here
     for p in project_results:
         if 'area' not in p:
             projectDeadline = ""
@@ -488,11 +485,11 @@ if ARG_OPROJECTS:
                     continue
                 projectTags = ",".join(p['tags'])
                 projectTags = f" (taglist:: {projectTags})"
-            print(f"- [[{remove_emojis(p['title'])}]] {get_things_link(p['uuid'])}{projectDeadline}{projectTags}")
+            output += f"\n- [[{remove_emojis(p['title'])}]] {get_things_link(p['uuid'])}{projectDeadline}{projectTags}"
     for a in area_results:
         if 'tags' in a:
             if has_skip_tags(a['tags']):
-                continue  
+                continue
         for p in project_results:
             if 'area' in p:
                 if p['area'] == a['uuid']:
@@ -506,6 +503,40 @@ if ARG_OPROJECTS:
                             continue
                         projectTags = ",".join(p['tags'])
                         projectTags = f" (taglist:: {projectTags})"
-                    print(f"- [[{remove_emojis(p['title'])}]] {get_things_link(p['uuid'])}{projectArea}{projectDeadline}{projectTags}")
+                    output += f"\n- [[{remove_emojis(p['title'])}]] {get_things_link(p['uuid'])}{projectArea}{projectDeadline}{projectTags}"
 
 if DEBUG: print("\nDONE!")
+
+# Get the current date
+today = datetime.today().strftime('%Y_%m_%d')
+
+# File path
+file_path = f'/Users/k/Dropbox/Apps/obsidian/Obsidian/Journal/{today}.md'
+
+# Read the file
+with open(file_path, 'r') as file:
+    lines = file.readlines()
+
+# Find the section to replace
+start_index = end_index = None
+for i, line in enumerate(lines):
+    if line.strip() == '## 🚀 Next':
+        start_index = i
+    elif start_index is not None and line.startswith('## '):
+        end_index = i
+        break
+
+if start_index is not None:
+    if end_index is None:
+        end_index = len(lines)
+
+    # Replace the section content with the generated output
+    new_section_content = output.strip().split('\n')  # Split output into lines
+    new_section_content = [line + '\n' for line in new_section_content]  # Ensure each line ends with a newline character
+    lines[start_index + 1:end_index] = new_section_content  # +1 to keep the section header
+
+    # Write the updated content back to the file
+    with open(file_path, 'w') as file:
+        file.writelines(lines)
+else:
+    print("Section '## 🚀 Next' not found in the file.")
