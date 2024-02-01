@@ -451,7 +451,13 @@ output = ""
 if completed_work_tasks:
     for key in completed_work_tasks:
         if key not in cancelled_work_tasks:
-            output += f"\n{completed_work_tasks[key]}"
+            # output += "\ncompleted_work_tasks[key]"
+            # output += f"\n{key}: {completed_work_tasks[key]}"
+            # output += f"\n{completed_work_tasks[key]}"
+
+            task_description = completed_work_tasks[key].lstrip("-[ ] ")  # Removing the ' - [ ] ' part
+            task_link = f"(things:///show?id={{{key}}})"
+            output += f"\n- [ ] [{task_description}]{task_link}"
             if not ARG_SIMPLE:
                 if key in task_notes:
                     if ARG_FORMAT == "import":
